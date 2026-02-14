@@ -2,7 +2,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/Dharmendra2567/Codex-AI_Agent_online_ide)
-![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FDharmendra2567%2FCodex-AI_Agent_online_ide&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false)
+![Hits](https://komarev.com/ghpvc/?username=Dharmendra2567&repo=Codex-AI_Agent_online_ide&label=Repo%20Views&color=brightgreen&style=flat)
 
 CodeX is a state-of-the-art online Integrated Development Environment (IDE) that leverages a collaborative multi-agent AI architecture to assist developers in writing, executing, and optimizing code. By combining the power of Llama 3 (via OpenRouter), Google Gemini, and a specialized microservices architecture, CodeX offers an intelligent development experience beyond traditional editors.
 
