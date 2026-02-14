@@ -1,7 +1,6 @@
 import os
 import re
 import jwt
-from google import genai
 from google.genai import types
 from dotenv import load_dotenv
 from flask import (
@@ -15,12 +14,14 @@ from flask import (
 from flask_cors import CORS
 from functools import wraps
 from datetime import datetime, timezone
+import json
 from prompts import *
 
 # LangChain imports
 from langchain_openai import ChatOpenAI
-from langchain.schema import HumanMessage, SystemMessage
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+from langchain_core.tools import tool
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain.agents import create_tool_calling_agent, AgentExecutor
 
 valid_languages = {
     "python",
@@ -46,25 +47,83 @@ valid_languages = {
 
 app = Flask(__name__)
 
-CORS(app)
+# Configure CORS to allow requests from frontend
+CORS(app, resources={
+    r"/*": {
+        "origins": ["http://localhost:5173", "http://localhost:3000"],
+        "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        "allow_headers": ["Content-Type", "Authorization"],
+        "supports_credentials": True
+    }
+})
 
 load_dotenv()
 
 CODE_REGEX = r"```(?:\w+\n)?(.*?)```"
 
-gemini_model = os.getenv("GEMINI_MODEL")
-gemini_model_1 = os.getenv("GEMINI_MODEL_1")
 SECRET_KEY = os.getenv("JWT_SECRET")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY")
 
-# Initialize OpenAI client
-openai_llm = ChatOpenAI(
-    openai_api_key=OPENAI_API_KEY,
-    model_name=OPENAI_MODEL,
-    streaming=True,
-    callbacks=[StreamingStdOutCallbackHandler()],
-    temperature=0.1
+if not OPENROUTER_API_KEY:
+    print("CRITICAL ERROR: OPENROUTER_API_KEY not found in environment variables or .env file.")
+    print("Please add 'OPENROUTER_API_KEY=your_key_here' to Backend/Genai/.env")
+    # We'll allow the error to propagate or stop here to avoid the crash later
+else:
+    print(f"OPENROUTER_API_KEY found (starts with: {OPENROUTER_API_KEY[:5]}...)")
+
+# OpenRouter LLM setup
+try:
+    llm = ChatOpenAI(
+        model="meta-llama/llama-3-8b-instruct",
+        temperature=0,
+        api_key=OPENROUTER_API_KEY,
+        openai_api_base="https://openrouter.ai/api/v1",
+        default_headers={
+            "HTTP-Referer": "http://localhost",
+            "X-Title": "LangChain-Agent"
+        }
+    )
+except Exception as e:
+    print(f"Error initializing ChatOpenAI: {e}")
+    llm = None
+
+@tool
+def calculator(query: str) -> str:
+    """Perform basic arithmetic calculations."""
+    try:
+        # Note: In a production environment, use a safer eval or a math library
+        return str(eval(query))
+    except:
+        return "Error in calculation"
+
+tools_set = [calculator]
+
+agent_prompt = ChatPromptTemplate.from_messages([
+    ("system", """You are a strictly deterministic code execution and generation engine.
+Your output MUST contain ONLY the direct result of the requested task (code output simulation or code generation).
+- NO conversational filler.
+- NO markdown code blocks (```) unless they are part of the actual simulated output.
+- NO explanations.
+
+EXAMPLES:
+1. Task: Simulate Python code output for `print('hello')`
+   Output: hello
+
+2. Task: Generate Python code for "print hello"
+   Output: print("hello")
+
+3. Task: Analyze C++ code for errors.
+   Output: (Only the error message or the execution result)"""),
+    ("human", "{input}"),
+    MessagesPlaceholder(variable_name="agent_scratchpad")
+])
+
+agent = create_tool_calling_agent(llm, tools_set, agent_prompt)
+
+agent_executor = AgentExecutor(
+    agent=agent,
+    tools=tools_set,
+    verbose=True
 )
 
 
@@ -96,55 +155,53 @@ def get_generated_code(problem_description, language):
         if language not in valid_languages:
             return "Error: Unsupported language."
 
-        def stream():
-            client = genai.Client()
-
-            response = client.models.generate_content_stream(
-                model=gemini_model,
-                contents=generate_code_prompt.format(
-                    problem_description=problem_description, language=language
-                ),
-                config=types.GenerateContentConfig(
-                    system_instruction=generate_instruction.format(language=language),
-                ),
-            )
-
-            for chunk in response:
-                if chunk.text:
-                    yield chunk.text
-
-        return Response(stream_with_context(stream()), mimetype="text/plain")
+        instruction = generate_instruction.format(language=language)
+        prompt_template = generate_code_prompt.format(
+            problem_description=problem_description, language=language
+        )
+        
+        input_text = f"{instruction}\n\nTASK: Generate the following code.\n{prompt_template}\n\nRAW CODE ONLY:"
+        
+        print(f"Generating {language} code...")
+        # Use llm directly to avoid AgentExecutor's conversational overhead for this direct mapping task
+        response = llm.invoke(input_text)
+        return Response(response.content.strip(), mimetype="text/plain")
 
     except Exception as e:
+        print(f"Error generating code: {e}")
         return ""
 
 
-def get_output(code, language):
+def get_output(code, language, user_input=None):
     try:
         if language in languages_prompts:
-            prompt = languages_prompts[language].format(
+            prompt_template = languages_prompts[language].format(
                 code=code, time=utc_time_reference()
             )
+            instruction = compiler_instruction.format(language=language)
         else:
             return "Error: Language not supported."
 
-        def stream():
-            client = genai.Client()
+        input_prompt = ""
+        if user_input:
+            input_prompt = f"\n\nPROVIDED USER INPUTS (to be used when the code requests input):\n{user_input}\n"
+        else:
+            input_prompt = "\n\nNO USER INPUTS PROVIDED."
 
-            response = client.models.generate_content_stream(
-                model=gemini_model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    system_instruction=compiler_instruction.format(language=language),
-                ),
-            )
-
-            for chunk in response:
-                if chunk.text:
-                    yield chunk.text
-
-        return Response(stream_with_context(stream()), mimetype="text/plain")
+        input_text = f"{instruction}\n\n{prompt_template}{input_prompt}\n\n" \
+                     f"IMPORTANT: \n" \
+                     f"1. PROVIDE ONLY THE TERMINAL OUTPUT (TEXT).\n" \
+                     f"2. DO NOT INCLUDE THE SOURCE CODE OR EXPLAIN.\n" \
+                     f"3. If the code requires user input and it is NOT provided or exhausted, return ONLY: value needed\n\n" \
+                     f"TERMINAL OUTPUT:"
+        
+        print(f"Executing code output simulation for {language} with input: {user_input}...")
+        # Use llm directly to avoid AgentExecutor's conversational overhead for this direct mapping task
+        response = llm.invoke(input_text)
+        return Response(response.content.strip(), mimetype="text/plain")
+        
     except Exception as e:
+        print(f"Error in get_output: {e}")
         return f"Error: Unable to process the code. {str(e)}"
 
 
@@ -165,21 +222,15 @@ def refactor_code(code, language, output, problem_description=None):
                 code=code, language=language, output=output
             )
 
-        def stream():
-            # Use OpenAI for refactoring
-            messages = [
-                SystemMessage(content=refactor_instruction.format(language=language)),
-                HumanMessage(content=refactor_content)
-            ]
-            
-            for chunk in openai_llm.stream(messages):
-                if hasattr(chunk, 'content') and chunk.content:
-                    yield chunk.content
-
-        return Response(stream_with_context(stream()), mimetype="text/plain")
+        instruction = refactor_instruction.format(language=language)
+        input_text = f"{instruction}\n\n{refactor_content}\n\nIMPORTANT: PROVIDE ONLY THE REFACTORED CODE. DO NOT EXPLAIN. DO NOT USE MARKDOWN CODE BLOCKS.\n\nREFACTORED CODE:"
+        
+        print(f"Refactoring {language} code...")
+        response = llm.invoke(input_text)
+        return Response(response.content.strip(), mimetype="text/plain")
 
     except Exception as e:
-        print(f"Error analyzing code: {e}")
+        print(f"Error refactoring code: {e}")
         return ""
 
 
@@ -192,37 +243,23 @@ def refactor_code_html_css_js(language, prompt, params, problem_description=None
         else:
             formatted_prompt = prompt.format(**params)
 
-        # Use OpenAI for HTML/CSS/JS refactoring
-        messages = [
-            SystemMessage(content=refactor_instruction.format(language=language)),
-            HumanMessage(content=formatted_prompt)
-        ]
+        instruction = refactor_instruction.format(language=language)
+        input_text = f"{instruction}\n\n{formatted_prompt}\n\nIMPORTANT: PROVIDE ONLY THE REFACTORED CODE. DO NOT EXPLAIN. DO NOT USE MARKDOWN CODE BLOCKS.\n\nREFACTORED CODE:"
         
-        response = openai_llm.invoke(messages)
-        result = response.content.strip()
-        return result
+        print(f"Refactoring HTML/CSS/JS ({language})...")
+        response = llm.invoke(input_text)
+        return response.content.strip()
     except Exception as e:
         return f"Error: {e}"
 
 
 def generate_html(prompt):
     formatted_prompt = html_prompt.format(prompt=prompt, time=utc_time_reference())
-
-    def stream():
-        client = genai.Client()
-
-        response = client.models.generate_content_stream(
-            model=gemini_model_1,
-            contents=formatted_prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=html_generate_instruction,
-            ),
-        )
-        for chunk in response:
-            if chunk.text:
-                yield chunk.text
-
-    return Response(stream_with_context(stream()), mimetype="text/plain")
+    input_text = f"{html_generate_instruction}\n\nTASK: Generate the following HTML code.\n{formatted_prompt}\n\nIMPORTANT: PROVIDE ONLY THE HTML CODE. DO NOT EXPLAIN. DO NOT USE MARKDOWN CODE BLOCKS.\n\nHTML CODE:"
+    
+    print("Generating HTML...")
+    response = llm.invoke(input_text)
+    return Response(response.content.strip(), mimetype="text/plain")
 
 
 def generate_css(html_content, project_description):
@@ -231,22 +268,11 @@ def generate_css(html_content, project_description):
         project_description=project_description,
         time=utc_time_reference(),
     )
-
-    def stream():
-        client = genai.Client()
-
-        response = client.models.generate_content_stream(
-            model=gemini_model_1,
-            contents=formatted_prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=css_generate_instruction,
-            ),
-        )
-        for chunk in response:
-            if chunk.text:
-                yield chunk.text
-
-    return Response(stream_with_context(stream()), mimetype="text/plain")
+    input_text = f"{css_generate_instruction}\n\nTASK: Generate the following CSS code for the provided HTML.\n{formatted_prompt}\n\nIMPORTANT: PROVIDE ONLY THE CSS CODE. DO NOT EXPLAIN. DO NOT USE MARKDOWN CODE BLOCKS.\n\nCSS CODE:"
+    
+    print("Generating CSS...")
+    response = llm.invoke(input_text)
+    return Response(response.content.strip(), mimetype="text/plain")
 
 
 def generate_js(html_content, css_content, project_description):
@@ -256,22 +282,11 @@ def generate_js(html_content, css_content, project_description):
         project_description=project_description,
         time=utc_time_reference(),
     )
-
-    def stream():
-        client = genai.Client()
-
-        response = client.models.generate_content_stream(
-            model=gemini_model_1,
-            contents=formatted_prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=js_generate_instruction,
-            ),
-        )
-        for chunk in response:
-            if chunk.text:
-                yield chunk.text
-
-    return Response(stream_with_context(stream()), mimetype="text/plain")
+    input_text = f"{js_generate_instruction}\n\nTASK: Generate the following JavaScript code for the provided HTML and CSS.\n{formatted_prompt}\n\nIMPORTANT: PROVIDE ONLY THE JAVASCRIPT CODE. DO NOT EXPLAIN. DO NOT USE MARKDOWN CODE BLOCKS.\n\nJAVASCRIPT CODE:"
+    
+    print("Generating JS...")
+    response = llm.invoke(input_text)
+    return Response(response.content.strip(), mimetype="text/plain")
 
 
 def utc_time_reference():
@@ -303,11 +318,12 @@ def get_output_api():
     try:
         code = request.json["code"]
         language = request.json["language"]
+        user_input = request.json.get("userInput")
 
         if not code or not language:
             return jsonify({"error": "Missing code or language"}), 400
 
-        return get_output(code, language)
+        return get_output(code, language, user_input)
 
     except Exception as e:
         return jsonify({"error": str(e)}), 400

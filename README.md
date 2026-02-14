@@ -1,73 +1,59 @@
-# CodeX: AI-Powered Online IDE with Multi-Agent Collaboration
+# CodeX: Advanced AI-Powered Multi-Agent Online IDE
 
-## Problem Statement
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/Dharmendra2567/Codex-AI_Agent_online_ide)
+![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2FDharmendra2567%2FCodex-AI_Agent_online_ide&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false)
 
-Traditional online IDEs often lack intelligent code assistance features that can understand programming context, generate code, debug errors, and refactor solutions effectively. Developers need tools that can not only execute code but also provide intelligent suggestions, fix bugs, and optimize implementations across multiple programming languages.
+CodeX is a state-of-the-art online Integrated Development Environment (IDE) that leverages a collaborative multi-agent AI architecture to assist developers in writing, executing, and optimizing code. By combining the power of Llama 3 (via OpenRouter), Google Gemini, and a specialized microservices architecture, CodeX offers an intelligent development experience beyond traditional editors.
 
-AI agents are perfectly suited for this use case because they can:
-- Understand natural language descriptions of programming problems
-- Generate syntactically correct code in multiple languages
-- Analyze code execution and identify errors
-- Provide intelligent refactoring suggestions
-- Collaborate to handle different aspects of the development process
+---
 
-Multi-agent collaboration brings unique value by allowing specialized agents to focus on their areas of expertise (code generation, execution, refactoring) while working together to provide a comprehensive solution that exceeds what any single agent could accomplish alone.
+## 🚀 Key Features
 
-## Project Description
+### 🧠 Intelligent Multi-Agent Architecture
+CodeX isn't just a code editor; it's a team of specialized AI agents working together:
+- **Code Generation Agent**: Instantly transforms natural language descriptions into production-ready code.
+- **Simulated Execution Agent**: Utilizes advanced LLM reasoning (Llama-3-8B) to simulate terminal outputs across dozens of programming languages without requiring local compilers.
+- **Refactoring Agent**: Analyzes code quality and execution results to suggest optimized, clean-code improvements.
+- **Web Suite Agents**: Specialized agents for high-fidelity HTML, CSS, and JavaScript development.
 
-This application is an AI-powered online IDE that leverages multiple AI agents to assist developers throughout the coding process. The system features:
+### 🔗 Robust Ecosystem
+- **Secure Authentication**: Enterprise-grade JWT-based authentication with OTP (One-Time Password) verification and secure password management.
+- **Ephemeral Code Sharing**: Share snippets with unique, expiring links powered by **Redis** for secure, temporary collaboration.
+- **Polyglot Support**: Syntax highlighting and execution simulation for 20+ languages including Python, Rust, Go, Swift, and more.
+- **Dynamic IDE Experience**: Fully responsive interface featuring the Ace Editor for a professional, desktop-grade coding experience in the browser.
 
-1. **Code Generation Agent**: Uses Google Gemini to generate initial code solutions based on natural language problem descriptions
-2. **Code Execution Agent**: Uses Google Gemini to analyze and execute code, providing output or error messages
-3. **Code Refactoring Agent**: Uses OpenAI models to analyze and improve existing code based on outputs or specific requirements
-4. **User Authentication System**: Secure JWT-based registration and login system
-5. **Dynamic UI**: Language-specific editors with syntax highlighting and tailored interfaces
+---
 
-The agents operate in a collaborative workflow:
-- The user provides a problem description and selects a programming language
-- The Code Generation Agent creates an initial solution
-- The Code Execution Agent runs the code and provides feedback
-- The Code Refactoring Agent suggests improvements based on the output
-- For web development (HTML/CSS/JS), specialized agents handle each layer of the frontend stack
+## 🛠️ Technical Stack
 
-## Tools, Libraries, and Frameworks Used
+- **Frontend**: React, Vite, Bootstrap, Ace Editor
+- **Backend Services**:
+  - **AI Engine**: Flask (Python), LangChain, OpenRouter (Llama 3), Google Gemini
+  - **Auth Service**: Node.js, Express, MongoDB (Mongoose), JWT, Bcrypt
+  - **Sharing Service**: Flask, Redis (Ephermal Storage)
+- **DevOps/Tools**: Python-dotenv, CORS, Postman (Testing)
 
-- **LangChain**: Framework for building LLM-powered applications and managing multi-agent workflows
-- **Google Gemini API**: For code generation and execution analysis
-- **OpenAI API**: For code refactoring tasks
-- **Flask**: Web framework for building the backend server
-- **Flask-CORS**: Handling cross-origin requests
-- **JWT**: For authentication and authorization
-- **Python-dotenv**: For environment variable management
-- **Ace Editor**: For code editing with syntax highlighting
-- **Bootstrap**: For responsive UI components
+---
 
-## LLM Selection
+## 🏗️ Architecture Overview
 
-### Ideal LLM Models:
-- **GPT-4** (OpenAI): Used for code refactoring tasks due to its superior reasoning capabilities and precise understanding of code structure and patterns
-- **Gemini 1.5 Pro** (Google): Used for code generation and execution analysis due to its strong performance in code-related tasks and large context window
+CodeX operates on a distributed microservices architecture:
+1. **Frontend (Port 3000)**: React-based UI that communicates with various backends.
+2. **Auth Backend (Port 5000)**: Manages users, OTPs, and JWT issue.
+3. **AI Backend (Port 5001)**: Orchestrates AI agents and execution simulation.
+4. **Sharing Backend (Port 5002)**: Handles ephemeral code storage using Redis.
 
-### Free-tier LLM Options:
-- **GPT-3.5 Turbo** (OpenAI): A capable alternative for code refactoring that provides good performance at lower cost
-- **Gemini Pro** (Google): Available through Google's free tier with generous usage limits, suitable for code generation tasks
+---
 
-The choice of using both Gemini and OpenAI models represents a strategic decision to leverage each model's strengths:
-- Gemini excels at code generation and broad language support
-- OpenAI models provide more precise refactoring capabilities
-- This multi-model approach ensures higher quality results than using a single provider
+## 🏁 Getting Started
 
-## Code and Deployment
+### Prerequisites
+- Node.js (v16+)
+- Python (3.9+)
+- MongoDB & Redis instances (Local or Cloud)
 
-### GitHub Repository
-[Link to GitHub Repository](https://github.com/Dharmendra2567/Codex-AI_Agent_online_ide)
-
-### Demo Link
-[Not Deployed Yet](https://your-demo-link.vercel.app)
-
-
-
-### Setup and Run Instructions
+### Installation & Setup
 
 1. **Clone the repository**:
    ```bash
@@ -75,74 +61,49 @@ The choice of using both Gemini and OpenAI models represents a strategic decisio
    cd Codex-AI_Agent_online_ide
    ```
 
-2. **Install dependencies**:
+2. **Configure Environment**:
+   Create `.env` files in `Backend/Genai`, `Backend/Login`, and `Frontend` based on provided examples.
+   ```env
+   # Backend/Genai/.env
+   OPENROUTER_API_KEY="your_key"
+   JWT_SECRET="your_secret"
+   ```
+
+3. **Run Backends**:
    ```bash
-   pip install -r requirements.txt
+   # Start Auth Service (Port 5000)
+   cd Backend/Login && npm start
+
+   # Start AI Service (Port 5001)
+   cd Backend/Genai && python app.py
+
+   # Start Sharing Service (Port 5002)
+   cd Backend/TempFile && python app.py
    ```
 
-3. **Set up environment variables**:
+4. **Run Frontend**:
    ```bash
-   cp .env.example .env
-   ```
-   Edit `.env` with your API keys:
-   ```
-   GEMINI_MODEL="models/gemini-pro"
-   GEMINI_MODEL_1="models/gemini-pro"
-   JWT_SECRET="your-jwt-secret"
-   OPENAI_API_KEY="your-openai-api-key"
+   cd Frontend && npm run dev
    ```
 
-4. **Run the application**:
-   ```bash
-   cd backend/GenAi
-   python app.py    //it starts at http://localhost:5001
+---
 
-    cd backend/login
-    npm start     //it start at http://localhost:5000
+## 🔮 Future Roadmap
 
-    cd backend/Tempfile
-    python app.py    //it start at http://localhost: 5002d
-   cd frontend
-   npm run dev    //it starts at http://localhost: 3000
-   ```
+We are constantly evolving. Here is what's coming next:
+- [ ] **Dockerized Code Execution**: Move from AI-simulated output to real-time containerized code execution.
+- [ ] **Real-time Collaboration**: Live "Google Docs" style collaborative coding sessions using WebSockets.
+- [ ] **AI-Driven Unit Testing**: Automatic generation of test suites for every snippet generated.
+- [ ] **VS Code Extension**: A bridge to bring CodeX's multi-agent intelligence directly into your local IDE.
+- [ ] **Semantic Code Search**: Search through codebases using natural language.
 
-5. **Access the application**:
-   Open your browser and navigate to `http://localhost:5001`
+---
 
-### Usage
-1. Register for a new account or login with existing credentials
-2. Select your programming language from the dashboard
-3. Describe your coding problem or paste existing code
-4. Use the generate, execute, and refactor features as needed
-5. For web development, use the HTML/CSS/JS specific tools
+## 🤝 Contributing
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-The application provides a seamless coding experience with AI assistance at every step, making it easier to write, debug, and improve code across multiple programming languages.
+## 📄 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Frontend Implementation
-
-The frontend includes:
-
-1. **User Authentication**: Registration and login forms with JWT token management
-2. **Language Selection Dashboard**: Buttons for all supported programming languages
-3. **Dynamic Editors**: Language-specific code editors with syntax highlighting
-4. **Real-time Output Display**: Area for code execution results
-5. **AI Action Buttons**: Generate, Execute, and Refactor functionality
-
-### Key Frontend Features:
-
-- Responsive design that works on desktop and mobile devices
-- Syntax highlighting for all supported programming languages
-- Real-time collaboration features (if implemented)
-- Dark/light mode toggle
-- Code formatting and linting indicators
-- File management for multi-file projects
-
-### Authentication Flow:
-
-1. Users register with email and password
-2. JWT tokens are issued upon successful authentication
-3. All API requests include the JWT token in the Authorization header
-4. Tokens are validated on the server for each protected endpoint
-5. Session management with token refresh capabilities
-
-The application provides a comprehensive coding environment that combines the power of multiple AI agents with a user-friendly interface for an enhanced development experience.
+---
+**Developed with ❤️ by [Dharmendra](https://github.com/Dharmendra2567)**

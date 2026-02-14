@@ -39,8 +39,9 @@ const CodeEditor = ({
   );
   const [output, setOutput] = useState(
     sessionStorage.getItem(outputStorageKey) ||
-      "Run your code to see output here..."
+    "Run your code to see output here..."
   );
+  const [userInput, setUserInput] = useState("");
   const [deviceType, setDeviceType] = useState("pc");
   const [cpyBtnState, setCpyBtnState] = useState("Copy");
   const [timeoutId, setTimeoutId] = useState(null);
@@ -163,6 +164,7 @@ const CodeEditor = ({
         body: JSON.stringify({
           language: language,
           code: code,
+          userInput: userInput,
         }),
       });
 
@@ -776,8 +778,7 @@ const CodeEditor = ({
       if (!countResponse.ok) {
         const errorResponse = await countResponse.json();
         throw new Error(
-          `Failed to save shared link count: ${
-            errorResponse.msg || countResponse.statusText
+          `Failed to save shared link count: ${errorResponse.msg || countResponse.statusText
           }`
         );
       }
@@ -964,8 +965,8 @@ const CodeEditor = ({
         loadingActionGen === "thinking"
           ? "Thinking..."
           : loadingActionGen === "generate"
-          ? "Generating..."
-          : "Generate",
+            ? "Generating..."
+            : "Generate",
       disabled:
         isDownloadBtnPressed || isRefactorBtnPressed || isGenerateBtnPressed,
     },
@@ -984,8 +985,8 @@ const CodeEditor = ({
         loadingActionRefactor === "thinking"
           ? "Thinking..."
           : loadingActionRefactor === "refactor"
-          ? "Refactoring..."
-          : "Refactor",
+            ? "Refactoring..."
+            : "Refactor",
       disabled:
         code.trim().length === 0 ||
         isDownloadBtnPressed ||
@@ -1004,29 +1005,6 @@ const CodeEditor = ({
         isGenerateBtnPressed,
     },
   ];
-
-  const RenderOutput = () => (
-    <>
-      <div className="mt-4">
-        <div className="dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-t-lg p-2">
-          <div className="flex items-center space-x-2">
-            <BiTerminal className="ml-2 text-2xl" />
-            <h2 className="text-xl">Output</h2>
-          </div>
-        </div>
-
-        <pre
-          ref={terminalRef}
-          className="select-text font-mono text-xs font-semibold lg:text-sm focus:outline-none min-h-20 max-h-[295px] overflow-auto p-3 rounded-b-lg [scrollbar-width:thin] bg-[#eaeaea] text-[#292929] dark:bg-[#262636] dark:text-[#24a944]"
-        >
-          {output}
-        </pre>
-      </div>
-      <p className="ml-2 text-sm text-gray-500 italic">
-        Output may not be accurate.
-      </p>
-    </>
-  );
 
   return (
     <div className="mx-auto p-4">
@@ -1081,7 +1059,45 @@ const CodeEditor = ({
           )
         )}
       </div>
-      <RenderOutput />
+
+      <div className="mt-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Input Terminal */}
+          <div className="flex flex-col">
+            <div className="dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-t-lg p-2">
+              <div className="flex items-center space-x-2">
+                <BiTerminal className="ml-2 text-2xl" />
+                <h2 className="text-xl">Input (Terminal)</h2>
+              </div>
+            </div>
+            <textarea
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              placeholder="Enter values required for your code here..."
+              className="select-text font-mono text-xs font-semibold lg:text-sm focus:outline-none min-h-[150px] max-h-[295px] overflow-auto p-3 rounded-b-lg [scrollbar-width:thin] bg-[#eaeaea] text-[#292929] dark:bg-[#1E1E2E] dark:text-[#C0CAF5] border-none resize-none"
+            />
+          </div>
+
+          {/* Output Terminal */}
+          <div className="flex flex-col">
+            <div className="dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-t-lg p-2">
+              <div className="flex items-center space-x-2">
+                <BiTerminal className="ml-2 text-2xl" />
+                <h2 className="text-xl">Output</h2>
+              </div>
+            </div>
+            <pre
+              ref={terminalRef}
+              className="select-text font-mono text-xs font-semibold lg:text-sm focus:outline-none min-h-[150px] max-h-[295px] overflow-auto p-3 rounded-b-lg [scrollbar-width:thin] bg-[#eaeaea] text-[#292929] dark:bg-[#262636] dark:text-[#24a944]"
+            >
+              {output}
+            </pre>
+          </div>
+        </div>
+        <p className="ml-2 mt-2 text-sm text-gray-500 italic">
+          Output may not be accurate. If the code requires input, provide it in the input terminal above.
+        </p>
+      </div>
     </div>
   );
 };
