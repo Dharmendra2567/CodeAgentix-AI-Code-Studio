@@ -151,73 +151,73 @@ const Header = ({ isDarkMode, toggleTheme }) => {
         <div className="max-w-6xl mx-auto flex justify-between items-center">
           <Link
             to={`${baseUrl}`}
-            aria-label="Go to CodeX homepage"
+            aria-label="Go to CodeAgentix homepage"
             className="text-2xl ml-2.5 font-bold tracking-wide hover:text-gray-300 transition-colors duration-200 focus:outline-none"
           >
-            CodeX
+            CodeAgentix
           </Link>
 
-         <div className=" md:flex items-center space-x-6 justify-between">
-           <nav className="hidden md:flex space-x-6">
-            {isLoggedIn ? (
-              <>
-                <Link
-                  to={`${baseUrl}/account/${username}`}
-                  className="text-lg hover:text-gray-300 transition-colors duration-200 focus:outline-none"
-                  title={username.trim()}
-                  aria-label={`Go to ${formatUsername(username)}'s account`}
-                >
-                  {formatUsername(username)}'s Account
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="text-lg hover:text-gray-300 transition-colors duration-200 cursor-pointer focus:outline-none"
-                  disabled={isLoading}
-                >
-                  Logout
-                </button>
-              </>
-            ) : (
-              <>
-                <Link
-                  to={`${baseUrl}/login`}
-                  className="text-lg hover:text-gray-300 transition-colors duration-200 focus:outline-none"
-                  aria-label="Go to Login page"
-                >
-                  Login
-                </Link>
-                <Link
-                  to={`${baseUrl}/register`}
-                  className="text-lg hover:text-gray-300 transition-colors duration-200 focus:outline-none"
-                  aria-label="Go to Register page"
-                >
-                  Register
-                </Link>
-              </>
-            )}
-          </nav>
-
-          <div className="flex items-center space-x-4">
-            <button
-              onClick={toggleTheme}
-              className="text-xl focus:outline-none p-2 rounded-full cursor-pointer hover:bg-gray-700 transition-colors duration-200"
-            >
-              {isDarkMode ? (
-                <RxMoon className="text-white" />
+          <div className=" md:flex items-center space-x-6 justify-between">
+            <nav className="hidden md:flex space-x-6">
+              {isLoggedIn ? (
+                <>
+                  <Link
+                    to={`${baseUrl}/account/${username}`}
+                    className="text-lg hover:text-gray-300 transition-colors duration-200 focus:outline-none"
+                    title={username.trim()}
+                    aria-label={`Go to ${formatUsername(username)}'s account`}
+                  >
+                    {formatUsername(username)}'s Account
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="text-lg hover:text-gray-300 transition-colors duration-200 cursor-pointer focus:outline-none"
+                    disabled={isLoading}
+                  >
+                    Logout
+                  </button>
+                </>
               ) : (
-                <RxSun className="text-white" />
+                <>
+                  <Link
+                    to={`${baseUrl}/login`}
+                    className="text-lg hover:text-gray-300 transition-colors duration-200 focus:outline-none"
+                    aria-label="Go to Login page"
+                  >
+                    Login
+                  </Link>
+                  <Link
+                    to={`${baseUrl}/register`}
+                    className="text-lg hover:text-gray-300 transition-colors duration-200 focus:outline-none"
+                    aria-label="Go to Register page"
+                  >
+                    Register
+                  </Link>
+                </>
               )}
-            </button>
+            </nav>
 
-            <button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="text-xl focus:outline-none p-2 rounded-full hover:bg-gray-700 transition-colors duration-200 md:hidden"
-            >
-              <FaBarsStaggered className="text-white" />
-            </button>
+            <div className="flex items-center space-x-4">
+              <button
+                onClick={toggleTheme}
+                className="text-xl focus:outline-none p-2 rounded-full cursor-pointer hover:bg-gray-700 transition-colors duration-200"
+              >
+                {isDarkMode ? (
+                  <RxMoon className="text-white" />
+                ) : (
+                  <RxSun className="text-white" />
+                )}
+              </button>
+
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="text-xl focus:outline-none p-2 rounded-full hover:bg-gray-700 transition-colors duration-200 md:hidden"
+              >
+                <FaBarsStaggered className="text-white" />
+              </button>
+            </div>
+
           </div>
-
-         </div>
         </div>
 
         <nav className="md:hidden mt-4">

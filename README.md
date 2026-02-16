@@ -1,17 +1,17 @@
-# CodeX: Advanced AI-Powered Multi-Agent Online IDE
+# CodeAgentix: Advanced AI-Powered Multi-Agent Online Code-Studio
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/Dharmendra2567/Codex-AI_Agent_online_ide)
-![Hits](https://komarev.com/ghpvc/?username=Dharmendra2567&repo=Codex-AI_Agent_online_ide&label=Repo%20Views&color=brightgreen&style=flat)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/Dharmendra2567/CodeAgentix-AI-Code-Studio)
+![Hits](https://komarev.com/ghpvc/?username=Dharmendra2567&repo=CodeAgentix-AI-Code-Studio&label=Repo%20Views&color=brightgreen&style=flat)
 
-CodeX is a state-of-the-art online Integrated Development Environment (IDE) that leverages a collaborative multi-agent AI architecture to assist developers in writing, executing, and optimizing code. By combining the power of Llama 3 (via OpenRouter), Google Gemini, and a specialized microservices architecture, CodeX offers an intelligent development experience beyond traditional editors.
+CodeAgentix is a state-of-the-art online Integrated Development Environment (IDE) that leverages a collaborative multi-agent AI architecture to assist developers in writing, executing, and optimizing code. By combining the power of Llama 3 (via OpenRouter), Google Gemini, and a specialized microservices architecture, CodeAgentix offers an intelligent development experience beyond traditional editors.
 
 ---
 
 ## 🚀 Key Features
 
 ### 🧠 Intelligent Multi-Agent Architecture
-CodeX isn't just a code editor; it's a team of specialized AI agents working together:
+CodeAgentix isn't just a code editor; it's a team of specialized AI agents working together:
 - **Code Generation Agent**: Instantly transforms natural language descriptions into production-ready code.
 - **Simulated Execution Agent**: Utilizes advanced LLM reasoning (Llama-3-8B) to simulate terminal outputs across dozens of programming languages without requiring local compilers.
 - **Refactoring Agent**: Analyzes code quality and execution results to suggest optimized, clean-code improvements.
@@ -38,7 +38,7 @@ CodeX isn't just a code editor; it's a team of specialized AI agents working tog
 
 ## 🏗️ Architecture Overview
 
-CodeX operates on a distributed microservices architecture:
+CodeAgentix operates on a distributed microservices architecture:
 1. **Frontend (Port 3000)**: React-based UI that communicates with various backends.
 2. **Auth Backend (Port 5000)**: Manages users, OTPs, and JWT issue.
 3. **AI Backend (Port 5001)**: Orchestrates AI agents and execution simulation.
@@ -57,8 +57,8 @@ CodeX operates on a distributed microservices architecture:
 
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/Dharmendra2567/Codex-AI_Agent_online_ide
-   cd Codex-AI_Agent_online_ide
+   git clone https://github.com/Dharmendra2567/CodeAgentix-AI-Code-Studio
+   cd CodeAgentix-AI-Code-Studio
    ```
 
 2. **Configure Environment**:
@@ -94,7 +94,7 @@ We are constantly evolving. Here is what's coming next:
 - [ ] **Dockerized Code Execution**: Move from AI-simulated output to real-time containerized code execution.
 - [ ] **Real-time Collaboration**: Live "Google Docs" style collaborative coding sessions using WebSockets.
 - [ ] **AI-Driven Unit Testing**: Automatic generation of test suites for every snippet generated.
-- [ ] **VS Code Extension**: A bridge to bring CodeX's multi-agent intelligence directly into your local IDE.
+- [ ] **VS Code Extension**: A bridge to bring CodeAgentix's multi-agent intelligence directly into your local IDE.
 - [ ] **Semantic Code Search**: Search through codebases using natural language.
 
 ---
