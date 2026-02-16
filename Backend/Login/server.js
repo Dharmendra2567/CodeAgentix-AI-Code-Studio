@@ -9,10 +9,10 @@ require('dotenv').config();
 const corsOptions = require('./config/corsOptions');
 const User = require('./models/User');
 const {
-	usernameRegex,
-	emailRegex,
-	pwdRegex,
-	reservedUsernames,
+  usernameRegex,
+  emailRegex,
+  pwdRegex,
+  reservedUsernames,
 } = require("./utils/validation");
 
 const { checkAndConnectDB } = require('./config/db');
@@ -22,8 +22,6 @@ const { cleanExpired } = require('./middlewares/cleanExpired');
 const { updateLanguageCount } = require('./utils/updateLanguageCount');
 const { sendOtpEmail } = require('./smtp/sendMail')
 const { sendDelEmail } = require('./smtp/delEmail')
-const aiService = require('./utils/aiService');
-const shareService = require('./utils/shareService');
 
 const app = express();
 
@@ -31,7 +29,7 @@ app.set('trust proxy', 1);
 
 app.use(cors(corsOptions));
 app.use(express.json());
-app.use(bodyParser.json({ limit: '200kb' }));
+app.use(bodyParser.json({limit:'200kb'}));
 
 const PORT = process.env.PORT || 5000;
 
@@ -208,11 +206,11 @@ app.post('/api/login', cleanExpired, async (req, res) => {
 		await user.save();
 
 		const token = jwt.sign({
-			userId: user._id,
-		},
+				userId: user._id,
+			},
 			process.env.JWT_SECRET, {
-			algorithm: 'HS512',
-		}
+				algorithm: 'HS512',
+			}
 		);
 
 		res.json({
@@ -789,11 +787,11 @@ app.put('/api/change-password', async (req, res) => {
 		await user.save();
 
 		const newToken = jwt.sign({
-			userId: user._id,
-		},
+				userId: user._id,
+			},
 			process.env.JWT_SECRET, {
-			algorithm: 'HS512',
-		}
+				algorithm: 'HS512',
+			}
 		);
 
 		res.json({
@@ -1220,146 +1218,5 @@ app.delete('/api/user/sharedLink/:shareId', async (req, res) => {
 		});
 	}
 });
-
-
-// --- AI and Sharing Consolidated Routes ---
-
-app.post('/generate_code', verifyApiToken, async (req, res) => {
-	try {
-		const { problem_description, language } = req.body;
-		const code = await aiService.getGeneratedCode(problem_description, language);
-		res.type('text/plain').send(code);
-	} catch (error) {
-		res.status(400).json({ error: error.message });
-	}
-});
-
-app.post('/get-output', async (req, res) => {
-	try {
-		const { code, language, userInput } = req.body;
-		if (!code || !language) return res.status(400).json({ error: "Missing code or language" });
-		const output = await aiService.getOutput(code, language, userInput);
-		res.type('text/plain').send(output);
-	} catch (error) {
-		res.status(400).json({ error: error.message });
-	}
-});
-
-app.post('/refactor_code', verifyApiToken, async (req, res) => {
-	try {
-		const { code, language, problem_description, output } = req.body;
-		if (!code || !language) return res.status(400).json({ error: "Missing code or language" });
-		const refactored = await aiService.refactorCode(code, language, output, problem_description);
-		res.type('text/plain').send(refactored);
-	} catch (error) {
-		res.status(400).json({ error: error.message });
-	}
-});
-
-app.post('/htmlcssjsgenerate-code', verifyApiToken, async (req, res) => {
-	try {
-		const { prompt, type, htmlContent, cssContent } = req.body;
-		if (!prompt) return res.status(400).json({ error: "Project description is required" });
-
-		let result;
-		if (type === "html") result = await aiService.generateHtml(prompt);
-		else if (type === "css") result = await aiService.generateCss(htmlContent, prompt);
-		else if (type === "js") result = await aiService.generateJs(htmlContent, cssContent, prompt);
-		else return res.status(400).json({ error: "Invalid or missing 'type' parameter" });
-
-		res.type('text/plain').send(result);
-	} catch (error) {
-		res.status(500).json({ error: error.message });
-	}
-});
-
-app.post('/htmlcssjsrefactor-code', verifyApiToken, async (req, res) => {
-	try {
-		const data = req.body;
-		const { type } = data;
-		const html_content = data.html || "";
-		const css_content = data.css || "";
-		const js_content = data.js || "";
-		const problem_description = data.problem_description ? data.problem_description.trim().toLowerCase() : null;
-
-		if (!type) return res.status(400).json({ error: "Type is required." });
-
-		let result;
-		if (type === "html" && html_content) {
-			result = await aiService.refactorCodeHtmlCssJs("html",
-				problem_description ? aiService.prompts.refactorHtmlPromptUser : aiService.prompts.refactorHtmlPrompt,
-				{ html_content }, problem_description
-			);
-			// Replicate regex extraction from Python
-			const codeMatch = result.match(/```(?:\w+\n)?([\s\S]*?)```/);
-			res.json({ html: codeMatch ? codeMatch[1].trim() : result });
-		}
-		else if (type === "css" && html_content) {
-			result = await aiService.refactorCodeHtmlCssJs("css",
-				problem_description ? aiService.prompts.refactorCssPromptUser : aiService.prompts.refactorCssPrompt,
-				{ html_content, css_content }, problem_description
-			);
-			const codeMatch = result.match(/```(?:\w+\n)?([\s\S]*?)```/);
-			res.json({ css: codeMatch ? codeMatch[1].trim() : result });
-		}
-		else if (type === "js" && html_content && css_content) {
-			result = await aiService.refactorCodeHtmlCssJs("js",
-				problem_description ? aiService.prompts.refactorJsPromptUser : aiService.prompts.refactorJsPrompt,
-				{ html_content, css_content, js_content }, problem_description
-			);
-			const codeMatch = result.match(/```(?:\w+\n)?([\s\S]*?)```/);
-			res.json({ js: codeMatch ? codeMatch[1].trim() : result });
-		}
-		else {
-			res.status(400).json({ error: "Please provide appropriate content." });
-		}
-	} catch (error) {
-		res.status(500).json({ error: error.message });
-	}
-});
-
-app.post('/temp-file-upload', verifyApiToken, async (req, res) => {
-	try {
-		const result = await shareService.uploadFile(req.body);
-		res.json(result);
-	} catch (error) {
-		res.status(error.message === "Invalid expiry time." ? 400 : 500).json({ error: error.message });
-	}
-});
-
-app.get('/file/:shareId', async (req, res) => {
-	try {
-		const headerShareId = req.headers['x-file-id'];
-		const result = await shareService.getFile(req.params.shareId, headerShareId);
-		if (result.redirect) return res.redirect('/');
-		res.json(result);
-	} catch (error) {
-		const status = error.message === "File not found" ? 404 : (error.message === "File has expired" ? 410 : 500);
-		res.status(status).json({ error: error.message });
-	}
-});
-
-app.delete('/file/:file_id/delete', verifyApiToken, async (req, res) => {
-	try {
-		const result = await shareService.deleteFile(req.params.file_id);
-		res.json(result);
-	} catch (error) {
-		res.status(error.message === "File not found" ? 404 : 500).json({ error: error.message });
-	}
-});
-
-// Helper for verifying token on AI/Sharing routes
-function verifyApiToken(req, res, next) {
-	const authHeader = req.headers['authorization'];
-	const token = authHeader && authHeader.split(' ')[1];
-	if (!token) return res.status(403).json({ message: "Token is missing!" });
-	try {
-		const decoded = jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS512'] });
-		req.user_data = decoded;
-		next();
-	} catch (err) {
-		res.status(401).json({ message: "Invalid token!" });
-	}
-}
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
