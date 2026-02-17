@@ -9,10 +9,10 @@ require('dotenv').config();
 const corsOptions = require('./config/corsOptions');
 const User = require('./models/User');
 const {
-  usernameRegex,
-  emailRegex,
-  pwdRegex,
-  reservedUsernames,
+	usernameRegex,
+	emailRegex,
+	pwdRegex,
+	reservedUsernames,
 } = require("./utils/validation");
 
 const { checkAndConnectDB } = require('./config/db');
@@ -23,13 +23,17 @@ const { updateLanguageCount } = require('./utils/updateLanguageCount');
 const { sendOtpEmail } = require('./smtp/sendMail')
 const { sendDelEmail } = require('./smtp/delEmail')
 
+const aiService = require('./utils/aiService');
+const shareService = require('./utils/shareService');
+const executionService = require('./utils/executionService');
+
 const app = express();
 
 app.set('trust proxy', 1);
 
 app.use(cors(corsOptions));
 app.use(express.json());
-app.use(bodyParser.json({limit:'200kb'}));
+app.use(bodyParser.json({ limit: '200kb' }));
 
 const PORT = process.env.PORT || 5000;
 
@@ -206,11 +210,11 @@ app.post('/api/login', cleanExpired, async (req, res) => {
 		await user.save();
 
 		const token = jwt.sign({
-				userId: user._id,
-			},
+			userId: user._id,
+		},
 			process.env.JWT_SECRET, {
-				algorithm: 'HS512',
-			}
+			algorithm: 'HS512',
+		}
 		);
 
 		res.json({
@@ -787,11 +791,11 @@ app.put('/api/change-password', async (req, res) => {
 		await user.save();
 
 		const newToken = jwt.sign({
-				userId: user._id,
-			},
+			userId: user._id,
+		},
 			process.env.JWT_SECRET, {
-				algorithm: 'HS512',
-			}
+			algorithm: 'HS512',
+		}
 		);
 
 		res.json({
@@ -1216,6 +1220,179 @@ app.delete('/api/user/sharedLink/:shareId', async (req, res) => {
 		res.status(500).json({
 			msg: 'Server error',
 		});
+	}
+});
+
+
+// --- AI & Code Execution Services ---
+
+const authenticateToken = (req, res, next) => {
+	const authHeader = req.headers['authorization'];
+	const token = authHeader && authHeader.split(' ')[1];
+
+	if (!token || token === 'null' || token === 'undefined') {
+		return res.status(401).json({ msg: "Authentication required. Please login." });
+	}
+
+	jwt.verify(token, process.env.JWT_SECRET, { algorithms: ['HS512'] }, (err, user) => {
+		if (err) {
+			console.error("JWT Verification Error:", err.message);
+			return res.status(403).json({ msg: "Session expired or invalid. Please login again." });
+		}
+		req.user = user;
+		next();
+	});
+};
+
+app.post("/generate_code", authenticateToken, async (req, res) => {
+	try {
+		const { problem_description, language } = req.body;
+		res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+		res.setHeader('Transfer-Encoding', 'chunked');
+		await aiService.streamGeneratedCode(problem_description, language, res);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+app.post("/ai-chat", authenticateToken, async (req, res) => {
+	try {
+		const { code, language, output, type } = req.body;
+		await aiService.streamAiChat(code, language, output, type, res);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+app.post("/get-output", async (req, res) => {
+	try {
+		const { code, language, userInput } = req.body;
+		const output = await executionService.executeCode(code, language, userInput);
+		res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+		res.setHeader('Transfer-Encoding', 'chunked');
+		res.write(output);
+		res.end();
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+app.post("/refactor_code", authenticateToken, async (req, res) => {
+	try {
+		const { code, language, output, problem_description } = req.body;
+		res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+		res.setHeader('Transfer-Encoding', 'chunked');
+		await aiService.streamRefactorCode(code, language, output, problem_description, res);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+app.post("/generate_html_code_css_js", authenticateToken, async (req, res) => {
+	try {
+		const { prompt } = req.body;
+		const html = await aiService.generateHtml(prompt);
+		const css = await aiService.generateCss(html, prompt);
+		const js = await aiService.generateJs(html, css, prompt);
+		res.json({ html_content: html, css_content: css, js_content: js });
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+app.post("/htmlcssjsgenerate-code", authenticateToken, async (req, res) => {
+	try {
+		const { prompt, type, htmlContent, cssContent } = req.body;
+		res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+		res.setHeader('Transfer-Encoding', 'chunked');
+		await aiService.streamHtmlCssJsGenerate(prompt, type, htmlContent, cssContent, res);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+app.post("/htmlcssjsrefactor-code", authenticateToken, async (req, res) => {
+	try {
+		const { type, html, css, javascript, problem_description } = req.body;
+		const params = { html_content: html, css_content: css, js_content: javascript };
+
+		let result;
+		if (type === "html") {
+			result = await aiService.refactorCodeHtmlCssJs("html",
+				problem_description ? aiService.prompts.refactorHtmlPromptUser : aiService.prompts.refactorHtmlPrompt,
+				params, problem_description);
+			res.json({ html: result });
+		} else if (type === "css") {
+			result = await aiService.refactorCodeHtmlCssJs("css",
+				problem_description ? aiService.prompts.refactorCssPromptUser : aiService.prompts.refactorCssPrompt,
+				params, problem_description);
+			res.json({ css: result });
+		} else if (type === "js") {
+			result = await aiService.refactorCodeHtmlCssJs("javascript",
+				problem_description ? aiService.prompts.refactorJsPromptUser : aiService.prompts.refactorJsPrompt,
+				params, problem_description);
+			res.json({ js: result });
+		}
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+app.post("/refactor_html_css_js", authenticateToken, async (req, res) => {
+	try {
+		const { type, html_content, css_content, js_content, problem_description } = req.body;
+		let response = {};
+		const params = { html_content, css_content, js_content };
+
+		if (type === "html") {
+			response.html_content = await aiService.refactorCodeHtmlCssJs("html",
+				problem_description ? aiService.prompts.refactorHtmlPromptUser : aiService.prompts.refactorHtmlPrompt,
+				params, problem_description);
+		} else if (type === "css") {
+			response.css_content = await aiService.refactorCodeHtmlCssJs("css",
+				problem_description ? aiService.prompts.refactorCssPromptUser : aiService.prompts.refactorCssPrompt,
+				params, problem_description);
+		} else if (type === "javascript") {
+			response.js_content = await aiService.refactorCodeHtmlCssJs("javascript",
+				problem_description ? aiService.prompts.refactorJsPromptUser : aiService.prompts.refactorJsPrompt,
+				params, problem_description);
+		}
+		res.json(response);
+	} catch (error) {
+		res.status(500).json({ error: error.message });
+	}
+});
+
+// --- File Sharing Services ---
+
+app.post("/temp-file-upload", authenticateToken, async (req, res) => {
+	try {
+		const result = await shareService.uploadFile(req.body);
+		res.status(201).json(result);
+	} catch (error) {
+		res.status(400).json({ error: error.message });
+	}
+});
+
+app.get("/file/:shareId", async (req, res) => {
+	try {
+		const share_id = req.headers["share-id"];
+		const result = await shareService.getFile(req.params.shareId, share_id);
+		if (result.redirect) {
+			return res.sendFile(path.join(__dirname, "templates", "index.html"));
+		}
+		res.json(result);
+	} catch (error) {
+		res.status(404).json({ error: error.message });
+	}
+});
+
+app.delete("/temp-file-delete/:shareId", authenticateToken, async (req, res) => {
+	try {
+		const result = await shareService.deleteFile(req.params.shareId);
+		res.json(result);
+	} catch (error) {
+		res.status(404).json({ error: error.message });
 	}
 });
 

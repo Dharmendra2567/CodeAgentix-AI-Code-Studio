@@ -1,109 +1,126 @@
-# CodeAgentix: Advanced AI-Powered Multi-Agent Online Code-Studio
+# 🧠 CodeAgentix AI Studio
+
+### *The Intelligent Multi-Agent IDE for the Modern Developer*
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/Dharmendra2567/CodeAgentix-AI-Code-Studio)
-![Hits](https://komarev.com/ghpvc/?username=Dharmendra2567&repo=CodeAgentix-AI-Code-Studio&label=Repo%20Views&color=brightgreen&style=flat)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/Dharmendra2567/CodeAgentix-AI-Code-Studio)
+![Build: Passing](https://img.shields.io/badge/build-passing-brightgreen.svg)
+![Aesthetics: Premium](https://img.shields.io/badge/aesthetics-premium-ff69b4.svg)
 
-CodeAgentix is a state-of-the-art online Integrated Development Environment (IDE) that leverages a collaborative multi-agent AI architecture to assist developers in writing, executing, and optimizing code. By combining the power of Llama 3 (via OpenRouter), Google Gemini, and a specialized microservices architecture, CodeAgentix offers an intelligent development experience beyond traditional editors.
+**CodeAgentix AI Studio** is a state-of-the-art online Integrated Development Environment (IDE) that leverages a collaborative multi-agent AI architecture. It offers a "Perfect Working" experience with high-availability AI, robust ephemeral sharing, and a stunning premium design system.
+
+### 🌐 [Live Demo](https://your-frontend.vercel.app) | 📡 [API Status](https://your-backend.onrender.com)
 
 ---
 
 ## 🚀 Key Features
 
-### 🧠 Intelligent Multi-Agent Architecture
-CodeAgentix isn't just a code editor; it's a team of specialized AI agents working together:
-- **Code Generation Agent**: Instantly transforms natural language descriptions into production-ready code.
-- **Simulated Execution Agent**: Utilizes advanced LLM reasoning (Llama-3-8B) to simulate terminal outputs across dozens of programming languages without requiring local compilers.
-- **Refactoring Agent**: Analyzes code quality and execution results to suggest optimized, clean-code improvements.
-- **Web Suite Agents**: Specialized agents for high-fidelity HTML, CSS, and JavaScript development.
+### 🤖 Advanced AI Assistant (Dual-Model Precision)
+Unleash the power of high-end LLMs directly in your editor. Our unique **Redundant Precision Pipeline** ensures you never face a downtime error.
+- **Draft & Refine Logic**: Every request is drafted by **Google Gemini 2.0 Flash** and refined by **Llama 3.3 70B** for technical perfection.
+- **100% Availability**: Built-in auto-fallback to the **OpenRouter Free Router** guarantees response generation even during peak rate-limiting periods.
+- **Specialized AI Actions**:
+  - **Explain**: Step-by-step logic breakdown.
+  - **Debug**: Real-time logical error detection and patching.
+  - **Optimize**: Performance assessment and Big-O complexity reports.
+  - **Docs**: Instant generation of professional docstrings and comments.
+-   **Floating Brain Menu**: Access AI power with a sleek, hover-reveal interface.
+-   **Real-time Chat Sidebar**: Consult your AI assistant side-by-side with your code.
 
-### 🔗 Robust Ecosystem
-- **Secure Authentication**: Enterprise-grade JWT-based authentication with OTP (One-Time Password) verification and secure password management.
-- **Ephemeral Code Sharing**: Share snippets with unique, expiring links powered by **Redis** for secure, temporary collaboration.
-- **Polyglot Support**: Syntax highlighting and execution simulation for 20+ languages including Python, Rust, Go, Swift, and more.
-- **Dynamic IDE Experience**: Fully responsive interface featuring the Ace Editor for a professional, desktop-grade coding experience in the browser.
+### 🔗 Robust Ephemeral Sharing
+Share your code securely without worrying about stale links or server instability.
+- **MongoDB-Powered Migration**: We've migrated snippet storage from Redis to **MongoDB** for 100% reliability.
+- **Auto-Expiration**: Utilizing MongoDB **TTL (Time-To-Live) indices**, links automatically disappear after your chosen duration (10 mins to 1 week).
+- **One-Click Sharing**: Generate and copy unique share URLs instantly.
+
+### 🎨 Premium Design System
+Aesthetics that inspire productivity.
+- **Uniform Gradient Theme**: A cohesive visual language featuring vibrant, high-end gradients across all UI elements.
+- **Micro-Animations**: Subtle scaling, brightness transitions, and responsive hover effects for a modern, "alive" feel.
+- **Full Responsiveness**: Optimized for Desktop, Tablet, and Mobile viewport sizes.
+- **Monaco Editor Support**: Leveraging the power of VS Code's core editor in the browser with advanced syntax highlighting for 20+ languages.
+
+---
+
+## 🏗️ Project Architecture (Monorepo)
+
+The project is structured as a streamlined, high-performance monorepo:
+
+```markdown
+CodeAgentix/
+├── Frontend/             # React + Vite Studio (Standard UI & UX)
+│   └── src/
+│       ├── components/    # Standardized Premium Components
+│       └── utils/         # Constants and Logic
+├── Backend/Login/         # Consolidated Node.js Production Server
+│   ├── models/            # Mongoose Models (User, SharedCode)
+│   ├── utils/             # AI, Sharing, and Execution logic
+│   └── server.js          # Main Entry Point (Express)
+└── README.md              # Master Documentation
+```
 
 ---
 
 ## 🛠️ Technical Stack
 
-- **Frontend**: React, Vite, Bootstrap, Ace Editor
-- **Backend Services**:
-  - **AI Engine**: Flask (Python), LangChain, OpenRouter (Llama 3), Google Gemini
-  - **Auth Service**: Node.js, Express, MongoDB (Mongoose), JWT, Bcrypt
-  - **Sharing Service**: Flask, Redis (Ephermal Storage)
-- **DevOps/Tools**: Python-dotenv, CORS, Postman (Testing)
+- **Frontend**: React 19, Vite, Tailwind CSS, Monaco Editor, Framer Motion
+- **Backend**: Node.js, Express, MongoDB (Mongoose)
+- **AI Engine**: LangChain, OpenRouter (Llama 3.3 70B, Gemini 2.0 Flash)
+- **Deployment**: Render (Backend), Vercel (Frontend)
 
 ---
 
-## 🏗️ Architecture Overview
-
-CodeAgentix operates on a distributed microservices architecture:
-1. **Frontend (Port 3000)**: React-based UI that communicates with various backends.
-2. **Auth Backend (Port 5000)**: Manages users, OTPs, and JWT issue.
-3. **AI Backend (Port 5001)**: Orchestrates AI agents and execution simulation.
-4. **Sharing Backend (Port 5002)**: Handles ephemeral code storage using Redis.
-
----
-
-## 🏁 Getting Started
+## 🏁 Installation & Setup
 
 ### Prerequisites
-- Node.js (v16+)
-- Python (3.9+)
-- MongoDB & Redis instances (Local or Cloud)
+-   **Node.js** (v18+)
+-   **MongoDB** (Atlas or Local)
+-   **OpenRouter API Key** (for AI features)
 
-### Installation & Setup
+### Local Development
 
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/Dharmendra2567/CodeAgentix-AI-Code-Studio
-   cd CodeAgentix-AI-Code-Studio
-   ```
+1.  **Clone the Repository**:
+    ```bash
+    git clone https://github.com/Dharmendra2567/CodeAgentix-AI-Code-Studio
+    cd CodeAgentix-AI-Code-Studio
+    ```
 
-2. **Configure Environment**:
-   Create `.env` files in `Backend/Genai`, `Backend/Login`, and `Frontend` based on provided examples.
-   ```env
-   # Backend/Genai/.env
-   OPENROUTER_API_KEY="your_key"
-   JWT_SECRET="your_secret"
-   ```
+2.  **Setup Backend**:
+    ```bash
+    cd Backend/Login
+    npm install
+    # Create .env with: MONGO_URI, JWT_SECRET, OPENROUTER_API_KEY
+    npm start
+    ```
 
-3. **Run Backends**:
-   ```bash
-   # Start Auth Service (Port 5000)
-   cd Backend/Login && npm start
-
-   # Start AI Service (Port 5001)
-   cd Backend/Genai && python app.py
-
-   # Start Sharing Service (Port 5002)
-   cd Backend/TempFile && python app.py
-   ```
-
-4. **Run Frontend**:
-   ```bash
-   cd Frontend && npm run dev
-   ```
+3.  **Setup Frontend**:
+    ```bash
+    cd Frontend
+    npm install
+    # Create .env with: VITE_BACKEND_API_URL=http://localhost:5000
+    npm run dev
+    ```
 
 ---
 
-## 🔮 Future Roadmap
+## 🚀 Deployment (Cloud)
 
-We are constantly evolving. Here is what's coming next:
-- [ ] **Dockerized Code Execution**: Move from AI-simulated output to real-time containerized code execution.
-- [ ] **Real-time Collaboration**: Live "Google Docs" style collaborative coding sessions using WebSockets.
-- [ ] **AI-Driven Unit Testing**: Automatic generation of test suites for every snippet generated.
-- [ ] **VS Code Extension**: A bridge to bring CodeAgentix's multi-agent intelligence directly into your local IDE.
-- [ ] **Semantic Code Search**: Search through codebases using natural language.
+### Backend (Render.com)
+- **Root Directory**: `Backend/Login`
+- **Build Command**: `npm install`
+- **Start Command**: `npm start`
+- **Env**: Add `MONGO_URI`, `JWT_SECRET`, `OPENROUTER_API_KEY`.
+
+### Frontend (Vercel)
+- **Root Directory**: `Frontend`
+- **Build Command**: `npm run build`
+- **Output Directory**: `dist`
+- **Env**: `VITE_BACKEND_API_URL` (Set to your Render URL).
 
 ---
-
-## 🤝 Contributing
-Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📄 License
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
-**Developed with ❤️ by [Dharmendra](https://github.com/Dharmendra2567)**
+**Developed with ❤️ for the Developer Community by [Dharmendra](https://github.com/Dharmendra2567)**

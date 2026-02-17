@@ -53,8 +53,13 @@ const CodeEditor = ({
   const [isDownloadBtnPressed, setisDownloadBtnPressed] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isEditorReadOnly, setIsEditorReadOnly] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [activeChatType, setActiveChatType] = useState(null);
+  const [isAiLoading, setIsAiLoading] = useState(false);
 
   const terminalRef = useRef(null);
+  const chatEndRef = useRef(null);
   const editorRef = useRef(null);
 
   const navigate = useNavigate();
@@ -156,11 +161,18 @@ const CodeEditor = ({
     setisDownloadBtnPressed(true);
 
     try {
+      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+      const headers = {
+        "Content-Type": "application/json",
+      };
+
+      if (token && token !== "null" && token !== "undefined") {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
       const response = await fetch(apiEndpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: headers,
         body: JSON.stringify({
           language: language,
           code: code,
@@ -296,6 +308,78 @@ const CodeEditor = ({
     }, 1500);
 
     setTimeoutId(newTimeoutId);
+  };
+
+  const handleAiAction = async (type) => {
+    if (!isLoggedIn) {
+      navigate("/login");
+      return;
+    }
+
+    setIsChatOpen(true);
+    setIsAiLoading(true);
+    setActiveChatType(type);
+
+    const typeLabels = {
+      explain: "Explanation",
+      debug: "Bug Report",
+      optimize: "Optimization",
+      docs: "Documentation",
+      complexity: "Complexity Analysis"
+    };
+
+    const initialMessage = {
+      role: "ai",
+      type: type,
+      label: typeLabels[type],
+      content: "",
+      timestamp: new Date().toLocaleTimeString()
+    };
+
+    setChatMessages(prev => [...prev, initialMessage]);
+
+    try {
+      const token = localStorage.getItem(LOCAL_STORAGE_TOKEN_KEY);
+      const response = await fetch(`${BACKEND_API_URL}/ai-chat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({ code, language, output, type })
+      });
+
+      if (!response.ok || !response.body) throw new Error("AI failed to respond.");
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder("utf-8");
+
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        const chunk = decoder.decode(value, { stream: true });
+        setChatMessages(prev => {
+          const newMessages = [...prev];
+          const lastMsg = newMessages[newMessages.length - 1];
+          lastMsg.content += chunk;
+          return newMessages;
+        });
+
+        if (chatEndRef.current) {
+          chatEndRef.current.scrollIntoView({ behavior: "smooth" });
+        }
+      }
+    } catch (error) {
+      setChatMessages(prev => {
+        const newMessages = [...prev];
+        const lastMsg = newMessages[newMessages.length - 1];
+        lastMsg.content = "Failed to get AI response. Please try again.";
+        return newMessages;
+      });
+    } finally {
+      setIsAiLoading(false);
+    }
   };
 
   const generateCodeMain = async () => {
@@ -603,6 +687,10 @@ const CodeEditor = ({
         return;
       }
 
+      // Add a 15-second timeout to prevent infinite loading
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
       const response = await fetch(`${TEMP_SHARE_API_URL}/temp-file-upload`, {
         method: "POST",
         headers: {
@@ -610,7 +698,10 @@ const CodeEditor = ({
           Authorization: `Bearer ${token}`,
         },
         body: load,
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         throw new Error("Failed to upload the code");
@@ -910,7 +1001,7 @@ const CodeEditor = ({
   const buttonsConfig = [
     {
       action: runCode,
-      bgColor: "bg-blue-500",
+      bgColor: "bg-gradient-to-r from-blue-600 to-indigo-700",
       icon:
         loadingActionRun === "run" ? (
           <FaSpinner className="mr-2 mt-1 animate-spin" />
@@ -922,12 +1013,11 @@ const CodeEditor = ({
         loadingActionRun === "run" ||
         code.trim().length === 0 ||
         isGenerateBtnPressed ||
-        isRefactorBtnPressed ||
-        code.trim().length === 0,
+        isRefactorBtnPressed,
     },
     {
       action: clearAll,
-      bgColor: "bg-red-500",
+      bgColor: "bg-gradient-to-r from-rose-600 to-red-800",
       icon: <FaTrashAlt className="mr-2 mt-1" />,
       text: "Clear All",
       disabled:
@@ -938,21 +1028,21 @@ const CodeEditor = ({
     },
     {
       action: handleCopy,
-      bgColor: "bg-purple-500",
+      bgColor: "bg-gradient-to-r from-violet-600 to-purple-800",
       icon: <FaCopy className="mr-2 mt-1" />,
       text: cpyBtnState,
       disabled: code.trim().length === 0,
     },
     {
       action: () => downloadFile(code, "file", language),
-      bgColor: "bg-orange-500",
+      bgColor: "bg-gradient-to-r from-amber-500 to-orange-700",
       icon: <FaDownload className="mr-2 mt-1" />,
       text: "Download",
       disabled: code.trim().length === 0,
     },
     {
       action: generateCodeMain,
-      bgColor: "bg-green-500",
+      bgColor: "bg-gradient-to-r from-emerald-500 to-teal-700",
       icon:
         loadingActionGen === "thinking" ? (
           <GiBrain className="mr-2 mt-1 animate-bounce" />
@@ -972,7 +1062,7 @@ const CodeEditor = ({
     },
     {
       action: refactorCode,
-      bgColor: "bg-yellow-500",
+      bgColor: "bg-gradient-to-r from-orange-400 to-amber-600",
       icon:
         loadingActionRefactor === "thinking" ? (
           <GiBrain className="mr-2 mt-1 animate-bounce" />
@@ -995,7 +1085,7 @@ const CodeEditor = ({
     },
     {
       action: shareLink,
-      bgColor: "bg-fuchsia-500",
+      bgColor: "bg-gradient-to-r from-fuchsia-600 to-pink-800",
       icon: <FaShare className="mr-2 mt-1" />,
       text: "Share",
       disabled:
@@ -1007,96 +1097,214 @@ const CodeEditor = ({
   ];
 
   return (
-    <div className="mx-auto p-4">
-      <div className="dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-lg">
-        <div className="flex items-center my-2 ml-3 pt-2">
-          {reactIcon &&
-            React.createElement(reactIcon, { className: "text-xl mr-2" })}
-          <h2 className="text-xl">
-            {language.charAt(0).toUpperCase() + language.slice(1)} Editor
-          </h2>
+    <div className="container mx-auto p-4 max-w-full relative flex flex-col min-h-[90vh]">
+      <div className={`grid grid-cols-1 ${isChatOpen ? 'lg:grid-cols-4' : 'lg:grid-cols-3'} gap-6 transition-all duration-300`}>
+        {/* Left Section: Editor and Controls */}
+        <div className={`${isChatOpen ? 'lg:col-span-3' : 'lg:col-span-2'} flex flex-col gap-4 transition-all duration-300`}>
+          <div className="dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-lg shadow-lg overflow-hidden flex flex-col relative group">
+            <div className="flex items-center p-3 border-b dark:border-gray-700 border-gray-400 bg-gray-200 dark:bg-gray-900">
+              {reactIcon &&
+                React.createElement(reactIcon, { className: "text-xl mr-2" })}
+              <h2 className="text-xl font-semibold">
+                {language.charAt(0).toUpperCase() + language.slice(1)} Editor
+              </h2>
+            </div>
+
+            <div className="relative">
+              <MonacoEditor
+                language={language === "mongodb" ? "javascript" : language}
+                value={code}
+                onChange={(newValue) => setCode(newValue)}
+                editorDidMount={(editor) => editor.focus()}
+                onMount={handleEditorDidMount}
+                loading={`Loading ${capFirst(language)} Editor...`}
+                height="550px"
+                theme={isDarkMode ? "vs-dark" : "vs-light"}
+                options={{
+                  minimap: { enabled: false },
+                  matchBrackets: "always",
+                  fontFamily: "Source Code Pro",
+                  renderValidationDecorations: "on",
+                  scrollbar: { vertical: "visible", horizontal: "visible" },
+                  fontWeight: "bold",
+                  formatOnPaste: true,
+                  semanticHighlighting: true,
+                  folding: !deviceType.includes("mobile"),
+                  cursorBlinking: "smooth",
+                  cursorSmoothCaretAnimation: true,
+                  cursorStyle: "line",
+                  fontSize: fontSizeMap[deviceType],
+                  readOnly: isEditorReadOnly,
+                  scrollBeyondLastLine: false,
+                }}
+              />
+
+              {/* Floating AI Action Button (Bottom Right of Editor) */}
+              <div className="absolute bottom-6 right-6 z-50 group/ai">
+                <div className="flex flex-col-reverse items-end gap-2">
+                  <button className="w-14 h-14 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-full shadow-2xl flex items-center justify-center text-white hover:scale-110 transition-transform duration-300 cursor-pointer border-2 border-white/20">
+                    <GiBrain className="text-3xl" />
+                  </button>
+
+                  {/* Hover Menu */}
+                  <div className="opacity-0 group-hover/ai:opacity-100 pointer-events-none group-hover/ai:pointer-events-auto transition-all duration-300 translate-y-4 group-hover/ai:translate-y-0 flex flex-col gap-2 mb-2">
+                    {[
+                      { id: 'explain', icon: <FaPlay className="text-xs" />, label: 'Explain Code', color: 'from-blue-600 to-blue-800' },
+                      { id: 'debug', icon: <FaWrench className="text-xs" />, label: 'Debug Code', color: 'from-red-600 to-red-800' },
+                      { id: 'optimize', icon: <FaMagic className="text-xs" />, label: 'Optimize', color: 'from-green-600 to-green-800' },
+                      { id: 'docs', icon: <FaCopy className="text-xs" />, label: 'Generate Docs', color: 'from-orange-600 to-orange-800' },
+                      { id: 'complexity', icon: <FaSpinner className="text-xs" />, label: 'Complexity', color: 'from-cyan-600 to-cyan-800' },
+                    ].map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => handleAiAction(opt.id)}
+                        className={`group/btn flex items-center gap-2 whitespace-nowrap bg-gradient-to-r ${opt.color} text-white px-4 py-2 rounded-lg shadow-xl hover:-translate-x-2 transition-all duration-200 text-sm font-semibold`}
+                      >
+                        {opt.icon} {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap justify-center gap-3 py-2">
+            {buttonsConfig.map(
+              ({ action, bgColor, icon, text, disabled }, index) => (
+                <button
+                  key={index}
+                  onClick={action}
+                  className={`px-5 py-2.5 ${bgColor} text-white inline-flex items-center justify-center rounded-lg font-medium transition-all duration-200 hover:brightness-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-md`}
+                  disabled={disabled}
+                >
+                  <span className="flex items-center gap-2">
+                    {icon} {text}
+                  </span>
+                </button>
+              )
+            )}
+          </div>
         </div>
-        <MonacoEditor
-          language={language === "mongodb" ? "javascript" : language}
-          value={code}
-          onChange={(newValue) => setCode(newValue)}
-          editorDidMount={(editor) => editor.focus()}
-          onMount={handleEditorDidMount}
-          loading={`Loading ${capFirst(language)} Editor...`}
-          height="350px"
-          theme={isDarkMode ? "vs-dark" : "vs-light"}
-          options={{
-            minimap: { enabled: false },
-            matchBrackets: "always",
-            fontFamily: "Source Code Pro",
-            renderValidationDecorations: "on",
-            scrollbar: { vertical: "visible", horizontal: "visible" },
-            fontWeight: "bold",
-            formatOnPaste: true,
-            semanticHighlighting: true,
-            folding: !deviceType.includes("mobile"),
-            cursorBlinking: "smooth",
-            cursorSmoothCaretAnimation: true,
-            cursorStyle: "line",
-            fontSize: fontSizeMap[deviceType],
-            readOnly: isEditorReadOnly,
-            scrollBeyondLastLine: false,
-          }}
-        />
-      </div>
-      <div className="mt-4 flex flex-wrap justify-center gap-4">
-        {buttonsConfig.map(
-          ({ action, bgColor, icon, text, disabled }, index) => (
-            <button
-              key={index}
-              onClick={action}
-              className={`px-6 py-2 ${bgColor} text-white inline-flex place-content-center rounded-md w-full cursor-pointer transition-transform duration-200 sm:w-auto md:hover:scale-105 focus:outline-none disabled:opacity-75 disabled:cursor-not-allowed`}
-              disabled={disabled}
-            >
-              {icon}
-              {text}
-            </button>
-          )
+
+        {/* Right Section: Sidebar (Input & Output) */}
+        {!isChatOpen ? (
+          <div className="flex flex-col gap-4 h-full animate-in fade-in slide-in-from-right duration-300">
+            {/* Input Terminal */}
+            <div className="flex flex-col flex-1 min-h-[220px]">
+              <div className="dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-t-lg p-2.5 border-b dark:border-gray-700 border-gray-400 flex items-center gap-2">
+                <BiTerminal className="text-2xl" />
+                <h2 className="text-lg font-semibold">Input (Terminal)</h2>
+              </div>
+              <textarea
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                placeholder="Enter values required for your code here..."
+                className="flex-grow select-text font-mono text-xs font-medium focus:outline-none p-3 rounded-b-lg [scrollbar-width:thin] bg-[#eaeaea] text-[#292929] dark:bg-[#1E1E2E] dark:text-[#C0CAF5] border-none resize-none shadow-inner"
+              />
+            </div>
+
+            {/* Output Terminal */}
+            <div className="flex flex-col flex-[1.5] min-h-[300px] relative group/output">
+              <div className="dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-t-lg p-2.5 border-b dark:border-gray-700 border-gray-400 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BiTerminal className="text-2xl" />
+                  <h2 className="text-lg font-semibold">Output</h2>
+                </div>
+
+                {/* Chat Toggle Button (Bottom Right of Output Section) */}
+                <button
+                  onClick={() => setIsChatOpen(true)}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-700 text-white p-1.5 rounded-md hover:brightness-110 transition-all shadow-md flex items-center gap-1.5 text-xs font-bold active:scale-95"
+                >
+                  <GiBrain /> Open AI Chat
+                </button>
+              </div>
+              <pre
+                ref={terminalRef}
+                className="flex-grow select-text font-mono text-xs font-semibold focus:outline-none p-3 rounded-b-lg [scrollbar-width:thin] bg-[#eaeaea] text-[#292929] dark:bg-[#262636] dark:text-[#24a944] overflow-auto shadow-inner"
+              >
+                {output}
+              </pre>
+            </div>
+
+            <p className="px-2 text-xs text-gray-500 italic leading-snug">
+              Output may not be accurate. If the code requires input, provide it in the input terminal above.
+            </p>
+          </div>
+        ) : (
+          /* Sidebar AI Chat Interface */
+          <div className="lg:col-span-1 flex flex-col bg-white dark:bg-gray-900 border dark:border-gray-700 border-gray-300 rounded-lg shadow-2xl h-[950px] animate-in slide-in-from-right duration-500">
+            <div className="p-4 border-b dark:border-gray-700 flex items-center justify-between bg-gradient-to-r from-indigo-900 to-purple-900 text-white rounded-t-lg">
+              <div className="flex items-center gap-2">
+                <GiBrain className="text-2xl text-indigo-400" />
+                <div>
+                  <h3 className="font-bold text-sm">AI Coding Assistant</h3>
+                  <p className="text-[10px] text-indigo-300">Dual-Model Precise Mode</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsChatOpen(false)}
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex-grow overflow-y-auto p-4 flex flex-col gap-4 [scrollbar-width:thin]">
+              {chatMessages.length === 0 ? (
+                <div className="flex flex-col items-center justify-center h-full text-center p-6 text-gray-400">
+                  <GiBrain className="text-6xl mb-4 opacity-20" />
+                  <p className="text-sm font-medium">Hello! Choose an option from the AI button to start exploring your code.</p>
+                </div>
+              ) : (
+                chatMessages.map((msg, idx) => (
+                  <div key={idx} className={`flex flex-col gap-1 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                    <div className={`max-w-[100%] rounded-2xl p-4 text-xs leading-relaxed shadow-sm ${msg.role === 'user'
+                      ? 'bg-indigo-600 text-white rounded-tr-none'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 rounded-tl-none border dark:border-gray-700'
+                      }`}>
+                      {msg.label && <div className="font-black mb-2 text-indigo-500 uppercase tracking-widest text-[10px] border-b dark:border-gray-700 pb-1 flex items-center gap-1">
+                        <FaMagic className="text-[8px]" /> {msg.label}
+                      </div>}
+                      <pre className="whitespace-pre-wrap font-sans">{msg.content}</pre>
+                      {idx === chatMessages.length - 1 && isAiLoading && (
+                        <div className="flex gap-1 mt-2">
+                          <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce"></div>
+                          <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce delay-150"></div>
+                          <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce delay-300"></div>
+                        </div>
+                      )}
+                    </div>
+                    <span className="text-[9px] text-gray-500 px-2">{msg.timestamp}</span>
+                  </div>
+                ))
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            <div className="p-4 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-b-lg">
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { id: 'explain', label: 'Explain', color: 'from-blue-600 to-indigo-700' },
+                  { id: 'debug', label: 'Debug', color: 'from-rose-600 to-red-800' },
+                  { id: 'optimize', label: 'Optimize', color: 'from-emerald-600 to-teal-800' },
+                  { id: 'complexity', label: 'Complexity', color: 'from-cyan-600 to-blue-800' },
+                ].map((btn) => (
+                  <button
+                    key={btn.id}
+                    onClick={() => handleAiAction(btn.id)}
+                    disabled={isAiLoading}
+                    className={`bg-gradient-to-r ${btn.color} text-white px-3 py-2 rounded-md text-[10px] font-bold hover:brightness-110 transition-all disabled:opacity-50 active:scale-95`}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         )}
-      </div>
-
-      <div className="mt-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Input Terminal */}
-          <div className="flex flex-col">
-            <div className="dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-t-lg p-2">
-              <div className="flex items-center space-x-2">
-                <BiTerminal className="ml-2 text-2xl" />
-                <h2 className="text-xl">Input (Terminal)</h2>
-              </div>
-            </div>
-            <textarea
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              placeholder="Enter values required for your code here..."
-              className="select-text font-mono text-xs font-semibold lg:text-sm focus:outline-none min-h-[150px] max-h-[295px] overflow-auto p-3 rounded-b-lg [scrollbar-width:thin] bg-[#eaeaea] text-[#292929] dark:bg-[#1E1E2E] dark:text-[#C0CAF5] border-none resize-none"
-            />
-          </div>
-
-          {/* Output Terminal */}
-          <div className="flex flex-col">
-            <div className="dark:bg-gray-800 dark:border-gray-700 bg-gray-300 rounded-t-lg p-2">
-              <div className="flex items-center space-x-2">
-                <BiTerminal className="ml-2 text-2xl" />
-                <h2 className="text-xl">Output</h2>
-              </div>
-            </div>
-            <pre
-              ref={terminalRef}
-              className="select-text font-mono text-xs font-semibold lg:text-sm focus:outline-none min-h-[150px] max-h-[295px] overflow-auto p-3 rounded-b-lg [scrollbar-width:thin] bg-[#eaeaea] text-[#292929] dark:bg-[#262636] dark:text-[#24a944]"
-            >
-              {output}
-            </pre>
-          </div>
-        </div>
-        <p className="ml-2 mt-2 text-sm text-gray-500 italic">
-          Output may not be accurate. If the code requires input, provide it in the input terminal above.
-        </p>
       </div>
     </div>
   );
