@@ -7,7 +7,7 @@
 ![Build: Passing](https://img.shields.io/badge/build-passing-brightgreen.svg)
 ![Aesthetics: Premium](https://img.shields.io/badge/aesthetics-premium-ff69b4.svg)
 
-**CodeAgentix AI Studio** is a state-of-the-art online Integrated Development Environment (IDE) that leverages a collaborative multi-agent AI architecture. It offers a "Perfect Working" experience with high-availability AI, robust ephemeral sharing, and a stunning premium design system.
+**CodeAgentix AI Studio** is a state-of-the-art online AI based online code compiler that leverages a collaborative multi-agent AI architecture. It offers a "Perfect Working" experience with high-availability AI, robust ephemeral sharing, and a stunning premium design system.
 
 ### 🌐 [Live Demo](https://your-frontend.vercel.app) | 📡 [API Status](https://your-backend.onrender.com)
 
